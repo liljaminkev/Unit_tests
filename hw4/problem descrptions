@@ -1,0 +1,3 @@
+delete item out of range - if index is at zero and we try to delete it accesses an invalid mem location
+too many puts - there is nothing checking if the list is full
+no quit - there is nothing checking if the text file has a quit function. it will cause an infinite loop.

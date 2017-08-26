@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+
+from fusil.application import Application
+from fusil.process.create import CreateProcess
+from fusil.bytes_generator import BytesGenerator, ASCII0
+from fusil.process.watch import WatchProcess
+from fusil.process.stdout import WatchStdout
+from random import randint, choice
+
+class BreakProcess(CreateProcess):
+    OPTIONS = ("PutItem", "GetLength", "PrintList", "GetItem", "IsFull", "DeleteItem", "MakeEmpty", "Error", "Quit")
+#init processes with initial info. numprocess creates filenumbers to prevent 
+    def __init__(self, project):
+	CreateProcess.__init__(self, project, ["./a.out"])
+	self.datagen = BytesGenerator(1, 10, ASCII0)
+
+#crate the command to input in to command line	
+    def createCmdline(self, fileName):
+	arguments = ['./a.out']
+	arguments.append(fileName)
+	arguments.append('output')
+	arguments.append('ol')
+	return arguments
+
+#generate file w/random cmds
+    def createInputFile(self, fileName):
+	
+	fileOut = open(fileName, 'w') #open file for writing
+	for index in xrange(randint(100,200)): 	#create 100 - 200 commands
+	    if randint(1, 5) > 1: 		#1:5 will make a random command 
+		#roll options and give number if needed
+		cmd = choice(self.OPTIONS)   
+		if (cmd == "PutItem") or (cmd == "GetItem") or (cmd == "DeleteItem"):
+		    cmd = cmd + " " + str(randint(-2147483649, 2147483647))
+		fileOut.write(cmd + '\n')
+	#make random command
+	    else:
+		randCmd = self.datagen.createValue()
+		fileOut.write(str(randCmd) + '\n')
+	#fileOut.write('Quit\n') #prevent quit from not being in file.
+	fileOut.close()
+
+#create filename and call functions to generate files, make cmd, and run process
+    def on_session_start(self):
+        fileName = self.session().createFilename('inputfile') #create inputfile
+	self.createInputFile(fileName)
+        self.cmdline.arguments = self.createCmdline(fileName)
+        self.createProcess()
+
+
+class Fuzzer(Application):
+    NAME = "Break"
+
+    def setupProject(self):
+        process = BreakProcess(self.project)
+        WatchProcess(process)
+        WatchStdout(process)
+
+if __name__ == "__main__":
+    Fuzzer().main()
